@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import exportedMethods from './path-to/exportedMethods'; // adjust import path as needed
+import Products from '../data/products.ts';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -13,9 +13,8 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      const result = await exportedMethods.login(email, password);
+      const result = await Products.login(email, password);
       console.log("Login success:", result);
-      // Handle success (e.g. store token, redirect, etc.)
     } catch (err) {
       console.error("Login error:", err);
       setError("Invalid email or password.");
