@@ -79,7 +79,7 @@ const api = {
         }
     },
 
-    getProductById: async (id: number) => {
+    getProductById: async (id: string) => {
         try {
             const response = await axios.get(`${URL}/products/${id}`);
             return response.data;

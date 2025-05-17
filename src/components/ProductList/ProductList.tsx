@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import Apis, { type Product } from '../../APIs/productAPIs';
+import { Link } from 'react-router-dom';
 import './ProductList.scss';
 
 const LIMIT = 20;
 
 const ProductList: React.FC = () => {
+    const [input, setInput] = useState('');
+    const [searchResults, setSearchResults] = useState<Product[] | null>(null);
     const {
         data,
         isLoading,
@@ -23,45 +26,74 @@ const ProductList: React.FC = () => {
         initialPageParam: 0,
     });
 
-    const products = data?.pages.flat() || [];
+    const pagedProducts = data?.pages.flat() || [];
 
     useEffect(() => {
-        if (products.length > 0) console.log('Products changed:', products);
-    }, [products]);
+        const active = searchResults ?? pagedProducts;
+        if (active.length) console.log('Products changed:', active);
+    }, [searchResults, pagedProducts]);
 
-    if (isLoading) {
+    const handleSearch = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!input.trim()) return;
+        try {
+        const results = await Apis.searchProducts(input);
+        setSearchResults(results);
+        } catch (error: any) {
+        console.error('Error searching products:', error);
+        } finally {
+        setInput('');
+        }
+    };
+    const productsToShow = searchResults ?? pagedProducts;
+
+    if (isLoading && searchResults === null) {
         return <p>Loading...</p>
     }
 
-    if (isError) {
+    if (isError && searchResults === null){
         return <div className="alert">{error?.message}</div>;
     }
 
-    if (!products || products.length === 0) {
+    if (!productsToShow.length) {
         return <div className="empty">No products found</div>;
     }
 
-    return (
-        <div className="product-list-container">
-            <div className="product-grid">
-            {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
-            ))}
-            </div>
-            {hasNextPage && (
-                <div className="load-more-container">
-                    <button
-                        className="load-more-btn"
-                        onClick={() => fetchNextPage()}
-                        disabled={isFetchingNextPage}
-                    >
-                        {isFetchingNextPage ? 'Loading more...' : 'Load More'}
-                    </button>
-                </div>
-            )}
+  return (
+    <div className="product-list-container">
+      <form className="search-bar" onSubmit={handleSearch}>
+        <input
+          type="text"
+          placeholder="Search products..."
+          className="search-input"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+        />
+        <button type="submit" className="search-btn">
+          Search
+        </button>
+      </form>
 
-            {isFetchingNextPage && <div className="spinner" />}
+      <div className="product-grid">
+        {productsToShow.map(product => (
+          <ProductCard key={product.id} product={product} />
+        ))}
+      </div>
+
+      {searchResults === null && hasNextPage && (
+        <div className="load-more-container">
+          <button
+            className="load-more-btn"
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+          >
+            {isFetchingNextPage ? 'Loading more...' : 'Load More'}
+          </button>
         </div>
+      )}
+
+      {isFetchingNextPage && <div className="spinner" />}
+    </div>
     );
 };
 
@@ -98,7 +130,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             )}
 
             <div className="product-info">
-                <h3 className="product-title">{product.title}</h3>
+                <h3 className="product-title">
+                    <Link to={`/products/${product.id}`} className="product-link">
+                        {product.title}
+                    </Link>
+                </h3>
                 <p className="product-price">${product.price.toFixed(2)}</p>
             </div>
 
